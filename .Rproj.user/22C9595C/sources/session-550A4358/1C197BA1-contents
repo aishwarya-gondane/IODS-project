@@ -1,0 +1,82 @@
+setwd("D://SLAM-Seq_RawData_May2022/SLAM-seq_DEGs/")
+setwd("C:/Users/gondanea/OneDrive - University of Helsinki/Results/SLAM_Seq_May2022")
+library(ggplot2)
+library(reshape2)
+library(tidyverse)
+
+library(readxl)
+FC <- read_xls("Test_Violin_Pathways.xls", sheet = "THZ")
+
+#FC <- read.table('DMSO_NVP2_TCReadCounts.txt', header = TRUE, sep = "/t")
+head(FC)
+
+# creating the modified dataframe
+data_mod <- melt(data_sub, id.vars= colnames(FC), 
+                  measure.vars=c('OSMI', 'NVP2', 'NVP2_OSMI', 'YKL', 'THZ','THZ_OSMI'))
+ggplot(data_mod) +
+  geom_boxplot(aes(x= variable, y=value, color=variable))
+
+ggplot(data_mod, aes(x=variable, y=value, color=variable)) + ylim(-10,10)+
+  geom_violin()+
+  geom_boxplot(width=0.1)+
+  theme_bw()
+
+## Violin plots for the affected pathways 
+
+data_subset = subset(FC, Gene_Name %in% UV_response_down )
+data_subset_1 = subset(FC, Gene_Name %in% Myc_targets_v1 )
+data_mod <- melt(data_subset, id.vars= colnames(FC), 
+                 measure.vars=c("UV_response_down","Myc_targets_v1"))
+head(data_mod)
+head(data_subset)
+
+
+AR_response <- data_subset$log2FoldChange
+FAM <- data_subset_1$log2FoldChange
+max_ln <- max(c(length(AR_response), length(FAM)))
+FC_2 <-  data.frame(AR_response = c(AR_response,rep(NA, max_ln - length(AR_response))),
+                    Myc_targets_v1 = c(FAM,rep(NA, max_ln - length(FAM))))
+data_mod <- melt(FC_2, id.vars= colnames(FC_2), 
+                 measure.vars=c("UV_response_down","Myc_targets_v1"))
+ggplot(data_mod, aes(x=variable, y=value, color=variable)) + 
+  geom_violin()+
+  geom_boxplot(width=0.1)+
+  theme_bw()
+
+
+####### Violin plot for YKL #######
+data_subset = subset(FC, Gene_Name %in% E2F_targets)
+data_subset_1 = subset(FC, Gene_Name %in% Oxidation_phosphorylation )
+
+AR_response <- data_subset$log2FoldChange
+FAM <- data_subset_1$log2FoldChange
+max_ln <- max(c(length(AR_response), length(FAM)))
+FC_2 <-  data.frame(E2F_targets = c(AR_response,rep(NA, max_ln - length(AR_response))),
+                    Oxidation_phosphorylation = c(FAM,rep(NA, max_ln - length(FAM))))
+data_mod <- melt(FC_2, id.vars= colnames(FC_2), 
+                 measure.vars=c("E2F_targets","Oxidation_phosphorylation"))
+ggplot(data_mod, aes(x=variable, y=value, color=variable)) + ylim(-6,6)+
+  geom_violin()+
+  geom_boxplot(width=0.1)+
+  theme_bw()
+
+
+
+###### Violin plot for THZ ########
+
+data_subset = subset(FC, Gene_Name %in%  UV_response_down)
+data_subset_1 = subset(FC, Gene_Name %in%  Myc_targets_v1 )
+
+AR_response <- data_subset$log2FoldChange
+FAM <- data_subset_1$log2FoldChange
+max_ln <- max(c(length(AR_response), length(FAM)))
+FC_2 <-  data.frame(UV_response_down = c(AR_response,rep(NA, max_ln - length(AR_response))),
+                    Myc_targets_v1 = c(FAM,rep(NA, max_ln - length(FAM))))
+data_mod <- melt(FC_2, id.vars= colnames(FC_2), 
+                 measure.vars=c("UV_response_down","Myc_targets_v1"))
+ggplot(data_mod, aes(x=variable, y=value, color=variable)) + 
+  geom_violin()+
+  geom_boxplot(width=0.1)+
+  theme_bw()
+
+

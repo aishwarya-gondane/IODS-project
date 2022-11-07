@@ -1,0 +1,46 @@
+setwd ("C:/Users/gondanea/OneDrive - University of Helsinki/Results/2022/CDK12_Methylation")
+library(ggplot2)
+library(ggrepel)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+
+  
+  
+MC_5 <- subset(DMSO_THZ531_results1, subset = GeneID %in% MethylCytosine)
+AR_1 <- subset(DMSO_THZ531_results1, subset = GeneID %in% AR)
+AR_MC_1 <- subset(DMSO_THZ531_results1, subset = GeneID %in% AR_MC)
+ETV <- subset(DMSO_THZ531_results1, subset = GeneID %in% ETV1)
+ERGG <- subset(DMSO_THZ531_results1, subset = GeneID %in% ERGG)
+HOXB3 <- subset(DMSO_THZ531_results1, subset = GeneID %in% HOXB3)
+FOXA1 <- subset(DMSO_THZ531_results1, subset = GeneID %in% FOXA1)
+
+
+
+
+# Finding maximum length
+max_ln <- max(c(length(DMSO_THZ531_results1$log2FoldChange), length(MC_5$log2FoldChange), length(AR_1$log2FoldChange)))
+gfg_data<- data.frame(CDK12_DEGs = c(DMSO_THZ531_results1$log2FoldChange,rep(NA, max_ln - length(DMSO_THZ531_results1$log2FoldChange))),
+                      Methycytosine = c(MC_5$log2FoldChange,rep(NA, max_ln - length(MC_5$log2FoldChange))),
+                      AR = c(AR_1$log2FoldChange,rep(NA, max_ln - length(AR_1$log2FoldChange))),
+                      AR_MC = c(AR_MC_1$log2FoldChange,rep(NA, max_ln - length(AR_MC_1$log2FoldChange))),
+                      ETV = c(ETV$log2FoldChange,rep(NA, max_ln - length(ETV$log2FoldChange))),
+                      ERGG = c(ERGG$log2FoldChange,rep(NA, max_ln - length(ERGG$log2FoldChange))),
+                      HOXB3 = c(HOXB3$log2FoldChange,rep(NA, max_ln - length(HOXB3$log2FoldChange))),
+                      FOXA1 = c(FOXA1$log2FoldChange,rep(NA, max_ln - length(FOXA1$log2FoldChange)))
+                      
+                      
+                      )
+head(gfg_data)
+boxplot(gfg_data, ylab = "Log fold change", outline=FALSE, col = NA)
+
+
+Summary_CTG_3Replicated_Endo_Methylation$Treatments <- factor(Summary_CTG_3Replicated_Endo_Methylation$Treatments, levels= c("DMSO","AT_05","20nM YKL", "Y_AT", "200_Sam","Sam_AT"))
+ggplot(data = Summary_CTG_3Replicated_Endo_Methylation, aes(x = Treatments, y = RV1))+
+  geom_boxplot(color="black")+ ylim(0,100)+
+  theme(plot.title = element_text(hjust = 0.5))+ 
+  labs(title="Cell viability", x="Conditions", y= "Cell number")+
+  theme_bw()+
+  theme(legend.position = "right",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),axis.line = element_line(colour = "black"), panel.border = element_blank())
+
+

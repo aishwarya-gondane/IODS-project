@@ -1,0 +1,115 @@
+#de <- read.table("D:\\MultiOmics\\DEGs_RPPA_OSMI_AT_ForVolcano.txt", header = TRUE, sep = "\t")
+de <- read.table("D:\\MultiOmics\\DEGs_RPPA_OSMI_AT_PhospProtein_Proteins_ForVolcano.txt", header = TRUE, sep = "\t")
+de_AT_OSMI <- read.table("D:\\MultiOmics\\DEGs_RPPA_OSMI+AT_PhospProtein_Proteins_ForVolcano.txt", header = TRUE, sep = "\t")
+
+
+p4 <- ggplot(data=de, aes(x=log2_FC_, y=-log10(P.value)))+
+geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+#geom_text_repel(data  = subset(de_1, GeneID %in% list4), aes(label = GeneID, color = "red"))+
+geom_point(data = subset(de, GeneID %in% List1_down),aes(x=log2_FC_, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+#scale_color_manual(values=c('gray','red'))+
+geom_point(data = subset(de, GeneID %in% List2_Up),aes(x=log2_FC_, y=-log10(P.value),color="blue", size=1.5,alpha=0.4))+
+geom_point(data = subset(de, GeneID %in% List3_down_unique),aes(x=log2_FC_, y=-log10(P.value),color="black", size=0.5,alpha=0.4))+
+geom_point(data = subset(de, GeneID %in% List4_up_unqiue),aes(x=log2_FC_, y=-log10(P.value),color="black", size=0.5,alpha=0.4))+
+scale_color_manual(values=c('black','red','gray','blue'))
+
+
+p5 <- ggplot(data=de, aes(x=log2_FC_, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  #geom_text_repel(data  = subset(de_1, GeneID %in% list4), aes(label = GeneID, color = "red"))+
+  geom_point(data = subset(de, GeneID %in% List1_down),aes(x=log2_FC_, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  #scale_color_manual(values=c('gray','red'))+
+  geom_point(data = subset(de, GeneID %in% List2_Up),aes(x=log2_FC_, y=-log10(P.value),color="blue", size=1.5,alpha=0.4))+
+  geom_point(data = subset(de, GeneID %in% List3_down_unique),aes(x=log2_FC_, y=-log10(P.value),color="black", size=1,alpha=0.4))+
+  geom_point(data = subset(de, GeneID %in% List4_up_unqiue),aes(x=log2_FC_, y=-log10(P.value),color="black", size=1,alpha=0.4))+
+  scale_color_manual(values=c('black','red','gray','blue'))
+
+
+p6 <- ggplot(data=de, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  #geom_text_repel(data  = subset(de_1, GeneID %in% list4), aes(label = GeneID, color = "red"))+
+  geom_point(data = subset(de, GeneID %in% List5),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))
+  
+p7_Phospho <- ggplot(data=de, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  #geom_text_repel(data  = subset(de_1, GeneID %in% list4), aes(label = GeneID, color = "red"))+
+  geom_point(data = subset(de, GeneID %in% Gene.Name_PhosphoProteins),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Phospho proteins overlap with transcriptomics")
+
+p7_TotalProtein <- ggplot(data=de, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  #geom_text_repel(data  = subset(de_1, GeneID %in% list4), aes(label = GeneID, color = "red"))+
+  geom_point(data = subset(de, GeneID %in% Gene.Name_Proteins),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Total proteins overlap with transcriptomics")
+
+#############################################################XXXXXX ######################
+
+#AT7519 transcriptomics data
+
+p7_Phospho_Sig <- ggplot(data=de, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data = subset(de, GeneID %in% c ("GSK3A","GSK3B", "LRP6", "PRKCA2", "PRKCB" ,"PRKCD", "PRKCE" , "PRKCH", "PRKCQ", "RPS6", "WEE1", "AKT1", "SHC1")), aes(label = GeneID, color = "red"))+
+  geom_point(data= subset(de, GeneID %in% c ("GSK3A","GSK3B", "LRP6", "PRKCA2", "PRKCB" ,"PRKCD", "PRKCE" ,"PRKCH", "PRKCQ", "RPS6", "WEE1", "AKT1", "SHC1")),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Phospho proteins overlap with transcriptomics AT7519 data (Significant;pvalue > 0.05)")
+
+p7_TotalProtenSig <- ggplot(data=de, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data  = subset(de, GeneID %in% c ("ARAF, BRAF", "BRD4", "GLUD", "MCL1", "MMP2","SDHA" )), aes(label = GeneID, color = "red"))+
+  geom_point(data = subset(de, GeneID %in% c ("ARAF, BRAF", "BRD4", "GLUD", "MCL1", "MMP2","SDHA" )),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Total proteins overlap with transcriptomics AT7519 data (Significant, pvalue < 0.05)")
+
+#############################################################XXXXXX ######################
+#AT7519+OSMI2 transcriptomics data
+
+AT_OSMI_Phospho_Sig <- ggplot(data=de_AT_OSMI, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data = subset(de_AT_OSMI, GeneID %in% c("EIF4EBP1","LRP6","WEE1","STAT3")), aes(label = GeneID, color = "red"))+
+  geom_point(data= subset(de_AT_OSMI, GeneID %in% c("EIF4EBP1","LRP6","WEE1","STAT3")),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Phospho proteins overlap with transcriptomics; Significant;pvalue < 0.05")
+
+AT_OSMI_TP_Sig <- ggplot(data=de_AT_OSMI, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data = subset(de_AT_OSMI, GeneID %in% c("ARAF","PPIF","HES1","SMAD3","WEE1")), aes(label = GeneID, color = "red"))+
+  geom_point(data= subset(de_AT_OSMI, GeneID %in% c("ARAF","PPIF","HES1","SMAD3","WEE1")),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Total proteins overlap with transcriptomics AT+OSMI2 (Significant, pvalue < 0.05)")
+
+
+#############################################################XXXXXX ######################
+#OSMI2 transcriptomics data
+
+de_OSMI <- read.table("D:\\MultiOmics\\DEGs_RPPA_OSMI_PhospProtein_Proteins_ForVolcano.txt", header = TRUE, sep = "\t")
+
+OSMI_Phospho_Sig <- ggplot(data=de_OSMI, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data = subset(de_OSMI, GeneID %in% c("EIF4EBP1","BAD","MDM2","YBX1")), aes(label = GeneID, color = "red"))+
+  geom_point(data= subset(de_OSMI, GeneID %in% c("EIF4EBP1","BAD","MDM2","YBX1")),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Phospho proteins overlap with transcriptomics OSMI2 data; Significant;pvalue < 0.05")
+
+OSMI_TP_Sig <- ggplot(data=de_OSMI, aes(x=log2_FC, y=-log10(P.value)))+
+  geom_point(aes(color="grey", size=1.5, alpha=0.4)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_text_repel(data = subset(de_OSMI, GeneID %in% c("ACACA","ACACB","AR","CTNNB1","MYC","CASP3","E2F1","EIF4E","LCK","MIF","NAPSA","RAD51","TRIM25")), aes(label = GeneID, color = "red"))+
+  geom_point(data= subset(de_OSMI, GeneID %in% c("ACACA","ACACB","AR","CTNNB1","MYC","CASP3","E2F1","EIF4E","LCK","MIF","NAPSA","RAD51","TRIM25")),aes(x=log2_FC, y=-log10(P.value),color="red", size=1.5,alpha=0.4))+
+  scale_color_manual(values=c('gray','red'))+ ggtitle("Total proteins overlap with transcriptomics OSMI2 data (Significant, pvalue < 0.05)")

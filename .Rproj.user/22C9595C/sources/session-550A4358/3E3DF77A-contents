@@ -1,0 +1,97 @@
+##Identifying DEGs 
+setwd("D://SLAM-Seq_RawData_May2022//sorted_BAM_files")
+setwd("//ad.helsinki.fi/home/g/gondanea/Desktop/ForAishwarya/AlternativeSplicing_Hinttala/BAM_BAI_Files")
+
+library(GenomicFeatures)
+library("Rsamtools")
+library( "GenomicAlignments" )
+library(BiocParallel)
+library("DESeq2")
+library(ggplot2)
+library(ggrepel)
+
+ec <- makeTxDbFromGFF("gencode.v29.annotation.gtf", format= "gtf")
+ec <- makeTxDbFromGFF("mm39.ncbiRefSeq.gtf", format= "gtf")
+exonsByGene<-exonsBy(ec,by="gene")
+fls<-list.files(pattern="_sorted.bam$",full=TRUE)
+bai <- paste(fls,".bai")
+bamLst <- BamFileList( fls)
+
+## For THZ ####
+se<-summarizeOverlaps(features=exonsByGene,read=bamLst,mode="Union", singleEnd=FALSE, ignore.strand=TRUE,fragments=TRUE, BPPARAM = MulticoreParam(workers=1))
+
+head(assay(se))
+colSums(assay(se))
+
+rowData(se)
+head(colnames(se))
+countData<-assay(se)
+head(countData)
+write.table(countData, "WT_KO_CountData.txt", sep = "\t")
+countData <- read.table("WT_FINCA_CountData.txt", sep ="/t")
+
+NVP_OSMI_Design=data.frame(row.names=colnames(countData),condition=c("WT","WT","WT","WT", "KO","KO","KO","KO"),libType=c("paired-end","paired-end","paired-end", "paired-end", "paired-end", "paired-end", "paired-end","paired-end"))
+all(rownames(NVP_OSMI_Design) == colnames(countData))
+NVP_OSMI_Design$condition <- factor(NVP_OSMI_Design$condition)
+NVP_OSMI_Design$libType <- factor(NVP_OSMI_Design$libType)
+ddsFullCountTable <- DESeqDataSetFromMatrix(countData= countData,design = ~condition, colData = NVP_OSMI_Design)
+
+DEGs <- DESeq(ddsFullCountTable, quiet = FALSE)
+res <- results( DEGs, parallel = FALSE,alpha = 0.05, pAdjustMethod = "BH")
+summary(res)
+plotMA( res, alpha = 0.05, colSig	= "blue",colLine = "black",lfcThreshold = 1)
+ 
+
+write.table( as.data.frame(res), file="DEGs_WT_KO_220817.txt", sep = "\t" )
+
+
+
+## Principal component analysis
+
+vsd <- vst(ddsFullCountTable, blind=FALSE)
+head(assay(vsd), 3)
+plotPCA(vsd,intgroup=c("condition"),returnData = FALSE)
+
+#Volcano Plot
+de <- read.table("DEGs_DMSO_THZ-OSMI_220615.txt", header = TRUE, sep = "/t")
+ggplot(data=de, aes(x= log2FoldChange, y=-log10(pvalue)))+
+  geom_point(aes(size=0.5, alpha= 1)) + xlim(-10,10)+ylim(0,350)+
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change'))+
+  scale_color_manual(values=c('black','red'))+ theme_minimal() +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  geom_vline(xintercept=c(-1, 1), col="red") +
+  geom_hline(yintercept=-log10(0.05), col="red")
+
+## Volcano plot with highlighting the exculsive genes from the DEGs #####
+
+library(readxl)
+DEGs_Summary <- read_excel("C:/Users/gondanea/OneDrive - University of Helsinki/Results/SLAM_Seq_May2022/DEGs_Summary.xlsx", 
+                           +     sheet = "NVP2", col_types = c("text", 
+                                                               +         "text", "numeric", "numeric", "text", 
+                                                               +         "text", "numeric", "text", "text"))
+ggplot(data=DEGs_Summary, aes(x=log2FoldChange, y=-log10(pvalue)))+xlim(-10,10)+ylim(0,150)+
+  geom_point(aes(color="black", size=1.0, alpha=1)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change')) +
+  theme(legend.position="none", plot.title = element_text(size = rel(1.5), hjust = 0.5))+
+  #geom_text_repel(data  = subset(DEGs_Summary, Gene_Name %in% Unique_NVP2), aes(label = Gene_Name, color = "red"))+
+  geom_point(data = subset(DEGs_Summary, Gene_Name %in% Unique_THZ),aes(x=log2FoldChange, y=-log10(pvalue),color="red", size=1.0,alpha=1))+
+  scale_color_manual(values=c('black','coral1')) +
+  theme_bw()+
+  geom_vline(xintercept=c(-1, 1), col="red") +
+  geom_hline(yintercept=-log10(0.05), col="red")
+
+
+########library(org.Hs.eg.db) 
+library(dplyr) 
+library(org.Hs.eg.db)
+setwd("C://Users//gondanea//OneDrive - University of Helsinki//Results//SLAM_Seq_May2022")
+FC <- read.table("ENST_id.txt", header = TRUE)
+ens2symbol <- AnnotationDbi::select(org.Hs.eg.db,
+                                    key=FC$Transcript_id , 
+                                    columns=c("SYMBOL","ENSEMBLTRANS", "GENENAME"),
+                                    keytype= "ENSEMBLTRANS")
+ens2symbol <- as_tibble(ens2symbol)
+ens2symbol
+FC <- inner_join(FC, ens2symbol, by=c("Transcript_id"="ENSEMBLTRANS"))
+write.table(FC,"SLAm-seq_Transcript_to_Gene.txt", sep = "/t")
+
