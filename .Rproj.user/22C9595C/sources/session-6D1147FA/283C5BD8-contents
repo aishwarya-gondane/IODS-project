@@ -1,0 +1,153 @@
+## GrandR 31/10/2022
+
+install.packages("grandR")
+
+setwd("Z:/Downloads/GRAND_SLAM/GRAND_SLAM_full")
+
+library(grandR)
+library(ggplot2)
+library(patchwork)
+
+## preparing metadata 
+metadata = data.frame(Name=c(
+  "Control_1", "Control_2", "NVP2_1", "NVP2_2", "OSMI_1", "OSMI_2"
+),Condition=rep(c("Control","NVP2", "OSMI"),each=2))
+
+# reading the Grand-SLAM output and the corresponding metadata
+NVP_OSMI_meta <- ReadGRAND("GRAND_SLAM_311022.tsv",design=metadata)
+
+## check the GrandR object 
+print(NVP_OSMI_meta)
+Title(NVP_OSMI_meta)
+nrow(NVP_OSMI_meta)
+ncol(NVP_OSMI_meta)
+
+#Filter genes.  By default genes are retained if they have 100 read counts in at least half of the samples (or cells).
+NVP_OSMI_meta <- FilterGenes(NVP_OSMI_meta, mode.slot = "new.count")
+mock <- subset(NVP_OSMI_meta,columns = Condition=="NVP2")
+mock
+mock <- FilterGenes(mock)
+nrow(mock)
+
+#Gene metadata
+head(GeneInfo(NVP_OSMI_meta), 10)
+head(GeneInfo(mock), 10)
+# retrieve the first 20 genes
+head(Genes(NVP_OSMI_meta), n=20)                          
+
+#During reading the data into R using ReadGRAND, the Type column is inferred using the 
+#ClassifyGenes() function. By default, this will recognize mitochondrial genes (MT prefix of the gene symbol),
+#ERCC spike-ins, and Ensembl gene identifiers (which it will call “cellular”). 
+#Here, we also have the viral genes, which are not properly recognized:
+
+table(GeneInfo(NVP_OSMI_meta,"Type"))
+table(GeneInfo(mock,"Type"))
+
+#Data is organized in an grandR object in so-called slots:
+Slots(NVP_OSMI_meta)
+
+# After loading GRAND-SLAM analysis results, the default slots are “count” (read counts),
+# “ntr” (the new-to-total RNA ratio) and “alpha” and “beta” (the parameters for the Beta approximation of the NTR posterior distribution).
+# Each of these slots contains a gene x columns (columns are either samples or cells, depending on whether your data is bulk or 
+# single cell data) matrix of numeric values.
+
+DefaultSlot(NVP_OSMI_meta)
+
+# New slots are added by specific grandR functions such as Normalize or NormalizeTPM, which, by default, 
+# also change the default slot. The default slot can also be set manually:
+NVP_OSMI_meta <- Normalize(NVP_OSMI_meta)
+DefaultSlot(NVP_OSMI_meta)
+
+NVP_OSMI_meta <- NormalizeTPM(NVP_OSMI_meta,set.to.default = FALSE)
+DefaultSlot(NVP_OSMI_meta)
+DefaultSlot(NVP_OSMI_meta)<-"norm"
+
+
+# As a quick quality check, we can inspect a principal component analysis of all samples involved:
+PlotPCA(NVP_OSMI_meta)
+
+
+# pairwise analyses are based on so-called “contrast matrices”, which can conveniently be constructed by using the GetContrasts function:
+contrasts <-GetContrasts(NVP_OSMI_meta)
+# Each column of the contrast matrix defines a single pairwise comparison: Samples with 0 are left out, 
+# and samples with 1 are compared vs samples with -1 (e.g. if log2 fold change are computed, comparing A vs B means log2(A/B)).
+
+
+#differential analysis using the lfc package [3] and DESeq2:
+fold_change_LCF <-  LFC(NVP_OSMI_meta, name.prefix = "QC",contrasts=contrasts)
+fold_change_LCF
+
+#use PlotScatter to to plot the analyses 
+PlotScatter(fold_change_LCF,xlim=c(-2,2),ylim=c(-2,2))
+
+#This works since there are three analysis values overall that are stored in the object:
+Analyses(fold_change_LCF,description = TRUE)
+
+# differential gene expression using DESeq2
+fold_change_LCF <- PairwiseDESeq2(fold_change_LCF,name.prefix = "QC",contrasts=contrasts)
+fold_change_LCF
+Analyses(fold_change_LCF,description = TRUE)
+
+
+VulcanoPlot(fold_change_LCF,analysis = "QC.Control vs NVP2", lfc.cutoff = 1,ylim=c(0,30), xlim=c(-6,6))|
+  VulcanoPlot(fold_change_LCF,analysis = "QC.Control vs OSMI", lfc.cutoff = 1,ylim=c(0,30), xlim=c(-6,6))
+
+
+#Without any other parameters GetTable returns data for all genes from the default slot: 
+
+head(GetTable(NVP_OSMI_meta))
+
+#You can change the slot by specifying another type parameter:
+head(GetTable(NVP_OSMI_meta,type="count"))
+
+#You can use multiple slots (we only show the column names instead of the head of the returned table):
+colnames(GetTable(NVP_OSMI_meta,type=c("norm","count")))
+GetData(NVP_OSMI_meta,genes="MYC")
+
+head(GetTable(fold_change_cal,"QC.Control vs NVP2"))
+head(GetAnalysisTable(fold_change_cal,"QC.Control vs NVP2"))
+
+
+
+# Now we perform LFC and DESeq2 analyses. We will perform this on the level of both total an new RNA
+# Also for new RNA fold changes, we normalize with respect to total RNA (i.e. size factors are computed based on total RNA before
+# performing differential analysis with new RNA).
+
+LFC_total <- LFC(NVP_OSMI_meta,name.prefix = "total",contrasts = contrasts)
+LFC_total <- PairwiseDESeq2(LFC_total,name.prefix = "total",contrasts = contrasts)
+LFC_new <- LFC(NVP_OSMI_meta,name.prefix = "new",contrasts = contrasts,mode="new", normalization = "total")
+LFC_new <- PairwiseDESeq2(LFC_new,name.prefix = "new",contrasts = contrasts,mode="new", normalization = "total")
+
+Analyses(LFC_total, description = TRUE)
+Analyses(LFC_new, description = TRUE)
+
+# MA plot comparing the total and the new from the same condition
+MAPlot(LFC_total ,analysis = "total.Control vs NVP2")|
+  MAPlot(LFC_new,analysis = "new.Control vs NVP2")
+
+MAPlot(LFC_total ,analysis = "total.Control vs OSMI")|
+  MAPlot(LFC_new,analysis = "new.Control vs OSMI")
+
+
+# Volcano plot comparing the total and the new from the same condition
+VulcanoPlot(LFC_total, analysis = "total.Control vs NVP2")|
+  VulcanoPlot(LFC_total, analysis = "total.Control vs OSMI")
+
+VulcanoPlot(LFC_total, analysis = "total.Control vs OSMI")|
+  VulcanoPlot(LFC_new, analysis = "new.Control vs OSMI")
+
+
+VulcanoPlot(LFC_total, analysis = "total.Control vs NVP2")|
+  VulcanoPlot(LFC_new, analysis = "new.Control vs NVP2")
+
+
+
+
+
+genes <- GetSignificantGenes(LFC_total,analysis = "total.Control vs NVP2")
+gsea <- AnalyzeGeneSets(LFC_total,analysis = "total.Control vs NVP2",category="C7")
+clusterProfiler::ridgeplot(gsea)
+PlotHeatmap(LFC_total,genes=genes)
+
+
+res <- GetAnalysisTable(LFC_total,genes = genes, transform="logFC")

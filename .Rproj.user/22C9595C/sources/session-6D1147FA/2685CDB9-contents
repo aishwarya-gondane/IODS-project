@@ -1,0 +1,143 @@
+#Gene set enrichment analysis 
+setwd("D://SLAM-Seq_RawData_May2022//sorted_BAM_files")
+setwd("C://Users//gondanea//OneDrive - University of Helsinki//Results//SLAM_Seq_May2022")
+setwd("\\ad.helsinki.fi\home\g\gondanea\Desktop\ForAishwarya\Slam-seq")
+
+BiocManager::install("clusterProfiler")
+BiocManager::install("pathview")
+BiocManager::install("enrichplot")
+
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+library(tidyverse)
+library(dplyr) 
+library(fgsea)
+
+# SET THE DESIRED ORGANISM HERE
+organism = "org.Hs.eg.db"
+BiocManager::install(organism, character.only = TRUE)
+library(org.Hs.eg.db)
+
+library(readxl)
+#res<-read_excel("DEGs_GSEA.xlsx", sheet = "NVP2_Slam_Degs_Up")
+enst_id <- read.table("ENST_id.txt", header = TRUE, sep = "\t")
+head(enst_id)
+
+### Converting the ENST id to gene names 
+library(biomaRt)
+mart <- useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+res <- getBM(attributes = c('ensembl_transcript_id',
+                            'ensembl_gene_id', 
+                            'external_transcript_name',
+                            'external_gene_name'),
+             filters = 'ensembl_transcript_id',
+             values = enst_id,
+             mart = mart)
+#res$external_gene_name <- res[match(enst_id[,1], res[,1]),2]
+write.table(res,"ENST_GeneSymbol.txt", sep = "\t")
+
+######### ______________________ ###################
+#Map Ensembl gene IDs to symbol. First create a mapping table.
+
+#tmp=gsub("////..*","",row.names(res))
+ens2symbol <- AnnotationDbi::select(org.Hs.eg.db,
+                                    key=res$transcript_id, 
+                                    columns=c("SYMBOL","GENENAME"),
+                                     keytype="ENSEMBLTRANS")
+ens2symbol <- as_tibble(ens2symbol)
+ens2symbol
+write.table(ens2symbol,"ENST_GeneSymbol.txt", sep = "\t")
+res <- inner_join(res, ens2symbol, by=c("Transcript_id"="ENSEMBLTRANS"))
+head(res)
+
+####### _____________________ ###################
+
+
+## tutorial followed from https://stephenturner.github.io/deseq-to-fgsea/ ##
+
+res = subset(DEGs_Slam_seq , external_gene_name %in% Unique_CDK9)
+
+res2 <- res  %>% 
+  dplyr::select(external_gene_name, stat) %>% 
+  na.omit() %>% 
+  distinct() %>% 
+  group_by(external_gene_name) %>% 
+  summarize(stat=mean(stat))
+
+
+ranks <- tibble::deframe(res2)                      
+head(ranks, 20)
+
+# Load the pathways into a named list
+pathways.hallmark <- gmtPathways("D://SLAM-Seq_RawData_May2022//sorted_BAM_files//h.all.v7.5.1.symbols.gmt")
+#pathways.hallmark
+
+# Show the first few pathways, and within those, show only the first few genes. 
+pathways.hallmark %>% 
+  head() %>% 
+  lapply(head)
+
+# run the fgsea algorithm with 1000 permutations:
+fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks, scoreType = "std")
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  arrange(padj) %>% 
+  DT::datatable()
+
+#Plot the normalized enrichment scores. Color the bar indicating whether or not the pathway was significant:
+ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+
+head(fgseaRes[order(padj), ])
+
+
+###GSEA pathway enrichment plot ###
+
+plotEnrichment(pathway = 
+                 pathways.hallmark[["HALLMARK_MYC_TARGETS_V1"]], 
+            stats= ranks) + labs(title="HALLMARK_MYC_TARGETS_V1 ")+ 
+              theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+
+## Plot all the singnifcant pathways ####
+filtered_pathway <- subset(fgseaResTidy, padj < 0.05)
+filt_p <- as.vector(filtered_pathway$pathway)
+head(filt_p)
+
+for (i in filt_p){
+  pdf(paste0(i,".pdf"),height=5,width=5) # change height and width parameter
+  plt <- plotEnrichment(pathway = pathways.hallmark[[i]], 
+                        gseaParam = 1, ticksSize = 0.5, stats= ranks) + 
+    labs(title=i) + theme(plot.title = element_text(hjust = 0.5, face="bold"))
+  print(plt)
+  dev.off()
+}
+
+########## The GO enrichment analysis #####
+fgseaRes <- fgsea(pathways=gmtPathways("c5.all.v7.5.1.symbols.gmt"), ranks, nperm=1000) %>% 
+  as_tibble() %>% 
+  arrange(padj)
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES, -nMoreExtreme) %>% 
+  arrange(padj) %>% 
+  DT::datatable()
+
+
+

@@ -1,0 +1,36 @@
+library(UpSetR)
+install.packages("UpSetR")
+setwd("C:/Users/gondanea/OneDrive - University of Helsinki/Results/SLAM_Seq_May2022")
+
+library(readxl)
+#InputGeneList <- read_excel("UpSetPlot.xls", sheet = "scatterPlot", col_names = TRUE)
+InputGeneList <- read.table("CTDKinases_Up.txt", header = TRUE, sep = "\t")
+head(InputGeneList)
+upset(fromList(AS_WT_KO_Summary), order.by = "freq")
+
+library(ggplot2)
+library(ggpubr)
+ggplot(data=InputGeneList, aes(x=log2FoldChange_RS, y=log2FoldChange_SS))+
+  geom_point(data=InputGeneList)+ theme_bw()+ xlim(-10,10)+ ylim(-10,10)+
+  stat_cor(method = "pearson", label.x = -10, label.y = 10,  na.rm = TRUE)+ geom_vline(xintercept=0, col="red") +
+  geom_hline(yintercept= 0, col="red")
+
+
+
+
+
+
+
+//////////
+install.packages("ggstatsplot")  
+library(ggstatsplot)
+ggstatsplot::ggscatterstats(data = InputGeneList, x = log2FoldChange_NVP2, y = log2FoldChange_NVP2_SS)
+
+
+corr_eqn <- function(x,y, digits = 2) {
+  corr_coef <- round(cor(x, y), digits = digits)
+  paste("italic(r) == ", corr_coef)
+}
+///////////////////
+
+

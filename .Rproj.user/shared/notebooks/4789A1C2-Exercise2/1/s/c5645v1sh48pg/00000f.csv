@@ -1,0 +1,18 @@
+"0","# Access the dplyr library
+library(dplyr)
+"
+"2","Warning: package ‘dplyr’ was built under R version 4.1.3"
+"2","
+Attaching package: ‘dplyr’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+"

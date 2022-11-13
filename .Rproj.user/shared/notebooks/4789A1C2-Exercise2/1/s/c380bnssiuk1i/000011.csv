@@ -1,0 +1,6 @@
+"0","# create column 'attitude' by scaling the column ""Attitude""
+lrn14$attitude <- attitude
+"
+"2","Error in `$<-.data.frame`(`*tmp*`, attitude, value = list(rating = c(43,  : 
+  replacement has 30 rows, data has 183
+"

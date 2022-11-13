@@ -1,0 +1,106 @@
+library(ggplot2)
+library(ggrepel)
+
+
+########## Volcano plot for Transcriptomics data ###########
+
+de <- read.table("DEG_scrambled_v_scrambled_A", header = TRUE, sep = "\t")
+ggplot(data=DEG_scrambled_v_scrambled_A, aes(x=log2_FC, y=-log(P_value)))+
+  geom_point(aes(color="black", size=0.5, alpha= 1)) + 
+  labs(y=expression('-Log'[10]*' P-Value'), x=expression('Log'[2]*' fold change'))+
+  scale_color_manual(values=c('black'))+ theme_bw()+
+  theme(legend.position = "none",panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),axis.line = element_line(colour = "black"), )
+
+
+############ GSEA #################
+library(tidyverse)
+library(dplyr) 
+library(fgsea)
+
+
+ranks <- tibble::deframe(DEG_scrambled_v_scrambled_A)                      
+head(ranks, 20)
+
+# Load the pathways into a named list
+pathways.hallmark <- gmtPathways("D://SLAM-Seq_RawData_May2022//sorted_BAM_files//h.all.v7.5.1.symbols.gmt")
+#pathways.hallmark
+
+# Show the first few pathways, and within those, show only the first few genes. 
+pathways.hallmark %>% 
+  head() %>% 
+  lapply(head)
+
+# run the fgsea algorithm with 1000 permutations:
+fgseaRes <- fgsea(pathways=pathways.hallmark, stats=ranks, scoreType = "std")
+
+fgseaResTidy <- fgseaRes %>%
+  as_tibble() %>%
+  arrange(desc(NES))
+
+# Show in a nice table:
+fgseaResTidy %>% 
+  dplyr::select(-leadingEdge, -ES) %>% 
+  arrange(padj) %>% 
+  DT::datatable()
+
+#Plot the normalized enrichment scores. Color the bar indicating whether or not the pathway was significant:
+ggplot(fgseaResTidy, aes(reorder(pathway, NES), NES)) +
+  geom_col(aes(fill=padj<0.05)) +
+  coord_flip() +
+  labs(x="Pathway", y="Normalized Enrichment Score",
+       title="Hallmark pathways NES from GSEA") + 
+  theme_minimal()
+
+head(fgseaRes[order(padj), ])
+
+
+###GSEA pathway enrichment plot ###
+
+plotEnrichment(pathway = 
+                 pathways.hallmark[["HALLMARK_MYC_TARGETS_V1"]], 
+               stats= ranks) + labs(title="HALLMARK_MYC_TARGETS_V1 ")+ 
+  theme(plot.title = element_text(hjust = 0.5, face="bold"))
+
+
+########## MA plot ######
+library("DESeq2")
+plotMA(DEG_scrambled_v_scrambled_A)
+
+
+
+
+###### heatmap ########
+library("pheatmap")
+setwd("C:/Users/gondanea/OneDrive - University of Helsinki/review_article_2022")
+
+res = subset(DEG_scrambled_v_scrambled_A , GeneID %in% MYC_targets)
+
+res2 <- res  %>% 
+  dplyr::select(GeneID, log2_FC) %>% 
+  na.omit() %>% 
+  distinct() %>% 
+  group_by(log2_FC) %>% 
+  summarize(stat=mean(log2_FC))
+
+#de <- read.table("FattyAcidMetab_Genes_HeatMap.txt", header = TRUE, sep = "\t")  
+data_de <- melt(res, measure.vars=c("log2_FC","Log_FC_combo"))
+
+ggplot(data_de, aes(variable,GeneID)) +geom_tile(aes(fill = value))+ scale_fill_gradient(low = "dodgerblue", high = "firebrick1")
+                                
+
+
+###### boxplot jitter #######
+library(reshape2)
+data_mod <- melt(Summary_AllEvents_rMATS , id.vars=colnames(Summary_AllEvents_rMATS), 
+                 measure.vars=c("A3SS","A5SS","MXE","SE","RI"))
+
+ggplot(data_mod, aes(x = variable, y = value))+
+  geom_boxplot(outlier.shape = NA) +ylim(-1,1)+
+  geom_jitter(alpha=0.4, aes(color=variable))+
+  coord_flip()+
+  theme_bw()
+
+######### waterfall plot ######
+data_de <- melt(res ,measure.vars=c("log2_FC"))
+head(data_de)
+waterfall(data_de, values = data_de$value, labels = data_de$GeneID)
